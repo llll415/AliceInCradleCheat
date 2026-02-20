@@ -1,4 +1,4 @@
-﻿using BepInEx.Configuration;
+﻿using MelonLoader;
 using HarmonyLib;
 using nel;
 
@@ -18,7 +18,7 @@ namespace AliceInCradleCheat
     }
     /*public class EnableFastTravel : BasePatchClass
     {
-        private static ConfigEntry<bool> switch_def;
+        private static MelonPreferences_Entry<bool> switch_def;
         public EnableFastTravel()
         {
             switch_def = TrackBindConfig("RestrictionLift", "FastTravel", false);
@@ -72,7 +72,7 @@ namespace AliceInCradleCheat
     }*/
     public class EnableStorageAccess : BasePatchClass
     {
-        private static ConfigEntry<bool> switch_def;
+        private static MelonPreferences_Entry<bool> switch_def;
         public EnableStorageAccess()
         {
             switch_def = TrackBindConfig("RestrictionLift", "StorageAccess", false);
@@ -91,7 +91,7 @@ namespace AliceInCradleCheat
     }
     public class EnableItemUsage : BasePatchClass
     {
-        private static ConfigEntry<bool> switch_def;
+        private static MelonPreferences_Entry<bool> switch_def;
         public EnableItemUsage()
         {
             switch_def = TrackBindConfig("RestrictionLift", "ItemUsage", false);

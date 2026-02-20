@@ -1,5 +1,5 @@
 ﻿using System;
-using BepInEx.Configuration;
+using MelonLoader;
 using HarmonyLib;
 using m2d;
 using nel;
@@ -16,6 +16,7 @@ namespace AliceInCradleCheat
         {
             _ = new DamageMultiplier();
             _ = new Invincible();
+            _ = new InvincibleDmg();
             _ = new InfiniteJump();
             _ = new InfiniteBomb();
             _ = new DuralableShield();
@@ -27,15 +28,13 @@ namespace AliceInCradleCheat
     }
     public class DamageMultiplier : BasePatchClass
     {
-        private static ConfigEntry<int> hp_dmg_def;
-        private static ConfigEntry<int> mp_dmg_def;
+        private static MelonPreferences_Entry<int> hp_dmg_def;
+        private static MelonPreferences_Entry<int> mp_dmg_def;
         public DamageMultiplier()
         {
             string section = "SuperNeol";
-            hp_dmg_def = TrackBindConfig(section, "HPDamageMultiplier", 1,
-                new AcceptableValueRange<int>(1, 200));
-            mp_dmg_def = TrackBindConfig(section, "MPDamageMultiplier", 1,
-                new AcceptableValueRange<int>(1, 200));
+            hp_dmg_def = TrackBindConfig(section, "HPDamageMultiplier", 1, 1, 200);
+            mp_dmg_def = TrackBindConfig(section, "MPDamageMultiplier", 1, 1, 200);
             TryPatch(GetType());
         }
         
@@ -49,7 +48,7 @@ namespace AliceInCradleCheat
     }
     public class Invincible : BasePatchClass
     {
-        private static ConfigEntry<bool> switch_def;
+        internal static MelonPreferences_Entry<bool> switch_def;
         public Invincible()
         {
             switch_def = TrackBindConfig("SuperNeol", "InvincibleToMonsters", false);
@@ -69,9 +68,26 @@ namespace AliceInCradleCheat
             }
         }
     }
+    // v0.29: damage also routes through M2PrADmg.applyDamage — separate class so failure is isolated
+    public class InvincibleDmg : BasePatchClass
+    {
+        public InvincibleDmg()
+        {
+            TryPatch(GetType());
+        }
+        [HarmonyPrefix, HarmonyPatch(typeof(M2PrADmg), "applyDamage", new Type[] { typeof(NelAttackInfo), typeof(bool), typeof(string), typeof(bool) })]
+        private static bool PatchDmgContent()
+        {
+            if (Invincible.switch_def != null && Invincible.switch_def.Value)
+            {
+                return false;
+            }
+            return true;
+        }
+    }
     public class InfiniteJump : BasePatchClass
     {
-        private static ConfigEntry<bool> switch_def;
+        private static MelonPreferences_Entry<bool> switch_def;
         public InfiniteJump()
         {
             switch_def = TrackBindConfig("SuperNeol", "InfiniteJump", false);
@@ -100,7 +116,7 @@ namespace AliceInCradleCheat
     }
     public class InfiniteBomb : BasePatchClass
     {
-        private static ConfigEntry<bool> switch_def;
+        private static MelonPreferences_Entry<bool> switch_def;
         public InfiniteBomb()
         {
             switch_def = TrackBindConfig("SuperNeol", "InfiniteGroundBomb", false);
@@ -125,7 +141,7 @@ namespace AliceInCradleCheat
     }
     public class DuralableShield : BasePatchClass
     {
-        private static ConfigEntry<bool> switch_def;
+        private static MelonPreferences_Entry<bool> switch_def;
         public DuralableShield()
         {
             switch_def = TrackBindConfig("SuperNeol", "DuralableShield", false);
@@ -148,7 +164,7 @@ namespace AliceInCradleCheat
     }
     public class DisableGasDamage : BasePatchClass
     {
-        private static ConfigEntry<bool> switch_def;
+        private static MelonPreferences_Entry<bool> switch_def;
         public DisableGasDamage()
         {
             switch_def = TrackBindConfig("SuperNeol", "DisableGasDamage", false);
@@ -170,7 +186,7 @@ namespace AliceInCradleCheat
     }
     public class ImmuneToMapThorn : BasePatchClass
     {
-        private static ConfigEntry<bool> switch_def;
+        private static MelonPreferences_Entry<bool> switch_def;
         public ImmuneToMapThorn()
         {
             switch_def = TrackBindConfig("SuperNeol", "ImmuneToMapThorn", false);
@@ -192,13 +208,13 @@ namespace AliceInCradleCheat
     }
     public class ImmuneToLava : BasePatchClass
     {
-        private static ConfigEntry<bool> switch_def;
+        private static MelonPreferences_Entry<bool> switch_def;
         public ImmuneToLava()
         {
             switch_def = TrackBindConfig("SuperNeol", "ImmuneToLava", false);
             TryPatch(GetType());
         }
-        [HarmonyPrefix, HarmonyPatch(typeof(PR), "checkLavaExecute")]
+        [HarmonyPrefix, HarmonyPatch(typeof(M2PrADmg), "checkLavaExecute")]
         private static bool PatchContent()
         {
             if (switch_def.Value)
@@ -219,11 +235,12 @@ namespace AliceInCradleCheat
         {
             try
             {
-                Harmony.CreateAndPatchAll(GetType());
+                var harmony = new HarmonyLib.Harmony("AliceInCradleCheat.TestFunction");
+                harmony.PatchAll(GetType());
             }
             catch //(Exception ex)
             {
-                AICCheat.cheat_logger.LogError($"Patch {GetType()} failed!");
+                Melon<AICCheat>.Logger.Error($"Patch {GetType()} failed!");
             }
         }
         [HarmonyPrefix, HarmonyPatch(typeof(M2PrSkill), "explodeMagic")]
@@ -231,30 +248,26 @@ namespace AliceInCradleCheat
         {
             string log = "";
             MGContainer mgc = __instance.NM2D.MGC;
-            //MagicItem cur_mg = Traverse.Create(__instance).Field("CurMg").GetValue<MagicItem>();
-            //if (cur_mg == null) { return; }
             for (int i = mgc.Length - 1; i >= 0; i--)
             {
                 MagicItem mg = mgc.getMg(i);
                 log += $"{mg.kind}: {mg.phase}\t";
             }
-            AICCheat.cheat_logger.LogInfo(log);
-            AICCheat.cheat_logger.LogInfo($"Pre------------------");
+            Melon<AICCheat>.Logger.Msg(log);
+            Melon<AICCheat>.Logger.Msg($"Pre------------------");
         }
         [HarmonyPostfix, HarmonyPatch(typeof(M2PrSkill), "explodeMagic")]
         private static void PatchContent2(ref M2PrSkill __instance)
         {
             string log = "";
             MGContainer mgc = __instance.NM2D.MGC;
-            //MagicItem cur_mg = Traverse.Create(__instance).Field("CurMg").GetValue<MagicItem>();
-            //if (cur_mg == null) { return; }
             for (int i = mgc.Length - 1; i >= 0; i--)
             {
                 MagicItem mg = mgc.getMg(i);
                 log += $"{mg.kind}: {mg.phase}\t";
             }
-            AICCheat.cheat_logger.LogInfo(log);
-            AICCheat.cheat_logger.LogInfo($"After------------------");
+            Melon<AICCheat>.Logger.Msg(log);
+            Melon<AICCheat>.Logger.Msg($"After------------------");
         }
     }
     // */

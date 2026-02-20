@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Text;
 using System.Collections.Generic;
-using BepInEx.Configuration;
+using MelonLoader;
 using XX;
 using HarmonyLib;
 
@@ -9,32 +9,26 @@ namespace AliceInCradleCheat
 {
     public class MenuLocalization : BasePatchClass
     {
-        public MenuLocalization () {
+        public MenuLocalization()
+        {
             TryPatch(GetType());
         }
         [HarmonyPostfix, HarmonyPatch(typeof(TX), "changeFamily")]
         private static void PatchContent()
         {
             string lang = TX.getCurrentFamilyName();
-            /*
-            key, simple_name, full_name
-            en, EN, English
-            zh-cn, CN, 中文(CN)A-v0.22
-            zh-cnB, CN, 中文(CN)B-v0.22
-            zh-tc, TC, 中文(TC)-v0.22
-            // */
             lang = new List<string> { "zh-cn", "zh-cnB", "zh-tc" }.Contains(lang) ? "zh-cn" : "en";
             if (lang != LocNames.menu_lang)
             {
                 LocNames.menu_lang = lang;
-                LocNames.ResetLocName();
+                CheatMenu.RefreshLocalization();
             }
             AdditionalDrop.ResetItemNames();
         }
     }
     public class AddCustomText : BasePatchClass
     {
-        private static readonly string[] custom_lang_list ={ "en", "zh-cn" };
+        private static readonly string[] custom_lang_list = { "en", "zh-cn" };
         private static readonly Dictionary<string, string> lang_target = new() {
             { "en", "en" },
             { "zh-cn", "zh-cn" },
@@ -56,23 +50,21 @@ namespace AliceInCradleCheat
         [HarmonyPostfix, HarmonyPatch(typeof(TX), "reloadTx")]
         private static void PatchContent()
         {
-
             List<TX.TXFamily> tx_fam_list = new();
             foreach (string key in lang_target.Keys)
             {
                 tx_fam_list.Add(TX.getFamilyByName(key));
             }
             string decoded = Encoding.UTF8.GetString(Convert.FromBase64String(custom_text));
-            foreach(string line in decoded.Split(char.Parse("\n")))
+            foreach (string line in decoded.Split(char.Parse("\n")))
             {
-                // text_array: tx_key, lang1, lang2, lang3, ...
                 string[] text_array = line.Replace("\n", "").Replace("\r", "").Split(char.Parse("\t"));
                 if (text_array.Length != custom_lang_list.Length + 1) { continue; }
                 foreach (TX.TXFamily tx_fam in tx_fam_list)
                 {
                     if (tx_fam == null) { continue; }
                     int index = Array.IndexOf(custom_lang_list, lang_target[tx_fam.key]);
-                    if (index == -1 ) { continue; }
+                    if (index == -1) { continue; }
                     TX.getTX(text_array[0], false, false, tx_fam).replaceTextContents(text_array[index + 1]);
                 }
             }
@@ -118,15 +110,14 @@ namespace AliceInCradleCheat
                     "desc_Weather", "Use a sequence of '0' to '9' to represent the number of certain weather, " +
                         "in the order of 'Normal', 'Whirlwind', 'Thunder', 'Fog', 'Drought', 'Heavy Fog', 'Plague', " +
                         "'Heavy Fog', 'Plague'. Note, conflicted weathers won't show together.", "使用包含0-9的序列" +
-                        "表示特定天气出现的次数，按顺序分别为‘通常’、‘旋风’、‘雷暴’、‘雾天’、‘干旱’、‘浓雾’" +
-                        "和‘瘟疫’。注意，冲突天气不会同时出现。",
+                        "表示特定天气出现的次数，按顺序分别为'通常'、'旋风'、'雷暴'、'雾天'、'干旱'、'浓雾'" +
+                        "和'瘟疫'。注意，冲突天气不会同时出现。",
             }),
             new LocConfigSection("NonHModeEnhance", new string[] { "Hide More Sexual Content", "健全模式增强"}, new string[] {
                 "ResetHExp", "Reset H Experiences", "重置经历",
                 "DisableGrabAttack", "Immune to Monster Grab Attack", "魔物抓取攻击无效",
                 "DisableEpDamage", "Immune to EP Damage", "EP攻击无效",
                     "desc_DisableEpDamage", "Include ep damage without grab attack like aphrodisiac beam", "包括无需抓取的EP攻击，比如人偶弩的紫射线",
-                //"DisableEventH", "", "关闭部分事件H",
                 "SkipGameOverPlay", "Skip Game-Over Monster Attack", "跳过战败鞭尸场景",
                 "DisableWormTrap", "Disable Worms", "关闭虫墙",
             }),
@@ -159,6 +150,7 @@ namespace AliceInCradleCheat
                 "ImmuneToBurned", "Immune to Burned", "免疫着火",
                 "ImmuneToFrozen", "Immune to Frozen", "免疫冻结",
                 "ImmuneToJamming", "Immune to Jamming", "免疫杂念",
+                "ImmuneToStone", "Immune to Petrification", "免疫石化",
                 "DisableMosaic", "Disable Mosaics", "关闭部分马赛克"
             }),
             new LocConfigSection("", new string[] {"", ""}, new string[] {
@@ -185,10 +177,7 @@ namespace AliceInCradleCheat
         {
             if (config_loc_dict.ContainsKey(section))
             {
-                string loc = GetSection(section).Loc_name(lang);
-                return "--------------------" +
-                    $"{GetSectionOrder(section):D2}.{loc}" +
-                    "--------------------";
+                return GetSection(section).Loc_name(lang);
             }
             return section;
         }
@@ -234,55 +223,6 @@ namespace AliceInCradleCheat
             catch
             {
                 return -1;
-            }
-        }
-        public static ConfigDescription TryGetEntryDesc(ConfigDefinition con_def)
-        {
-            try
-            {
-                if (AICCheat.config.TryGetEntry(con_def, out ConfigEntry<bool> bool_entry))
-                {
-                    return bool_entry.Description;
-                }
-            } catch { }
-            try
-            {
-                if (AICCheat.config.TryGetEntry(con_def, out ConfigEntry<int> int_entry))
-                {
-                    return int_entry.Description;
-                }
-            } catch { }
-            try
-            {
-                if (AICCheat.config.TryGetEntry(con_def, out ConfigEntry<string> string_entry))
-                {
-                    return string_entry.Description;
-                }
-            } catch { }
-            try
-            {
-                if (AICCheat.config.TryGetEntry(con_def, out ConfigEntry<float> float_entry))
-                {
-                    return float_entry.Description;
-                }
-            } catch { }
-            return null;
-        }
-        public static void ResetLocName(string lang = null)
-        {
-            lang ??= menu_lang;
-            foreach (ConfigDefinition con_def in AICCheat.config.Keys)
-            {
-                string section = con_def.Section;
-                string key = con_def.Key;
-                ConfigDescription desc = TryGetEntryDesc(con_def);
-                if (desc != null && desc.Tags != null && desc.Tags.Length > 0)
-                {
-                    ConfigurationManagerAttributes entry_attr = desc.Tags[0] as ConfigurationManagerAttributes;
-                    entry_attr.Category = GetSectionLocName(section, lang);
-                    entry_attr.DispName = GetEntryLocName(section, key, lang);
-                    entry_attr.Description = GetLocDesc(section, key, lang);
-                }
             }
         }
     }

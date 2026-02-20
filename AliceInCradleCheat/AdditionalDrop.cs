@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-using BepInEx.Configuration;
+using MelonLoader;
 using HarmonyLib;
 using nel;
 using XX;
@@ -14,73 +14,34 @@ namespace AliceInCradleCheat
         public static string section = "GenerateItemWhenDrop";
         private static Dictionary<string, string> NameToKey;
         private static Dictionary<string, string> KeyToName;
-        private static ConfigEntry<string> item_name_def;
-        private static ConfigEntry<int> count_def;
-        private static ConfigEntry<string> grade_def;
+        private static MelonPreferences_Entry<string> item_name_def;
+        private static MelonPreferences_Entry<int> count_def;
+        private static MelonPreferences_Entry<string> grade_def;
         public AdditionalDrop()
         {
-            item_name_def = TrackSetItemCon();
-            count_def = TrackBindConfig(section, "Count", 0, new AcceptableValueRange<int>(0, 20));
-            grade_def = TrackSetGradeCon();
+            item_name_def = TrackBindConfig(section, "ItemName", "");
+            count_def = TrackBindConfig(section, "Count", 0, 0, 20);
+            grade_def = TrackBindConfig(section, "Grade",
+                LocNames.GetEntryLocName("", "option_SameGrade"));
             TryPatch(GetType());
         }
-        public ConfigEntry<string> TrackSetItemCon()
-        {
-            ConfigEntry<string> entry = SetItemCon();
-            config_list.Add(entry.Definition);
-            return entry;
-        }
-        public static ConfigEntry<string> SetItemCon()
-        {
-            return BindConfig(section, "ItemName", "", new AcceptableValueList<string>(
-                LoadItemGetNameArray()));
-        }
-        public ConfigEntry<string> TrackSetGradeCon()
-        {
-            ConfigEntry<string> entry = SetGradeCon();
-            config_list.Add(entry.Definition);
-            return entry;
-        }
-        public static ConfigEntry<string> SetGradeCon()
-        {
-            return BindConfig(section, "Grade", LocNames.GetEntryLocName("", "option_SameGrade"),
-                new AcceptableValueList<string>(
-                    LocNames.GetEntryLocName("", "option_SameGrade"), "1", "2", "3", "4", "5"));
-        }
+
         public static void ResetItemNames()
         {
-            ConfigDefinition con_def = new(section, "Grade");
-            if (grade_def != null && AICCheat.config.ContainsKey(con_def))
+            // Re-initialize the name<->key mappings when language changes
+            if (NelItem.OData != null)
             {
-                string value = grade_def.Value;
-                AICCheat.config.Remove(con_def);
-                grade_def = SetGradeCon();
-                if (new List<string>() { "1", "2", "3", "4", "5" }.Contains(value))
-                {
-                    grade_def.Value = value;
-                }
-            }
-            con_def = new(section, "ItemName");
-            if (item_name_def != null && AICCheat.config.ContainsKey(con_def))
-            {
-                string value = item_name_def.Value;
-                value = value == "" ? "" : NameToKey[value];
-                AICCheat.config.Remove(con_def);
-                item_name_def = SetItemCon();
-                if (value != "")
-                {
-                    item_name_def.Value = KeyToName[value];
-                }
+                LoadItemNameMappings();
             }
         }
 
-        public static string[] LoadItemGetNameArray()
+        public static void LoadItemNameMappings()
         {
             NameToKey = new();
             KeyToName = new();
             if (NelItem.OData == null)
             {
-                return new string[1] { "" };
+                return;
             }
             foreach (NelItem itm in NelItem.OData.Values)
             {
@@ -107,17 +68,6 @@ namespace AliceInCradleCheat
                 NameToKey[localized_name] = key;
                 KeyToName[key] = localized_name;
             }
-            List<string> name_list = new(NameToKey.Keys);
-
-            name_list.Sort(delegate (string x, string y)
-            {
-                int r = 0;
-                r = NelItem.OData[NameToKey[x]].category.CompareTo(
-                    NelItem.OData[NameToKey[y]].category);
-                return r == 0 ? x.CompareTo(y) : r;
-            });
-            name_list.Insert(0, "");
-            return name_list.ToArray();
         }
 
         [HarmonyPrefix, HarmonyPatch(typeof(UiItemManageBox), "fnClickItemCmd")]
@@ -127,17 +77,27 @@ namespace AliceInCradleCheat
             if ((B.title != "drop" && B.title != "discard_row" && B.title != "discard_water") || count == 0) { return true; }
             string item_name = item_name_def.Value;
             NelItem Itm;
+
+            // Initialize name mappings if not done
+            if (NameToKey == null || KeyToName == null)
+            {
+                LoadItemNameMappings();
+            }
+
             if (NelItem.OData.ContainsKey(item_name))
             {
+                // Direct key input
                 Itm = NelItem.OData[item_name];
             }
             else if (NameToKey != null && NameToKey.ContainsKey(item_name) &&
                 NelItem.OData.ContainsKey(NameToKey[item_name]))
             {
+                // Localized name input
                 Itm = NelItem.OData[NameToKey[item_name]];
             }
             else
             {
+                // Fallback to current selected item
                 Itm = __instance.UsingTarget;
             }
             if ((Itm.is_precious && Itm.key != "enhancer_slot" && Itm.key != "oc_slot") || Itm.is_cache_item || Itm.is_enhancer)

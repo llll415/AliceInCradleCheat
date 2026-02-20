@@ -1,4 +1,4 @@
-﻿using BepInEx.Configuration;
+﻿using MelonLoader;
 using HarmonyLib;
 using nel;
 using m2d;
@@ -6,11 +6,11 @@ using m2d;
 namespace AliceInCradleCheat
 {
     // ##############################
-    // Restriction Lift
+    // Special Item Effect
     // ##############################
     public class SpecialItemEffect : BasePatchClass
     {
-        private static ConfigEntry<bool> ep_item_effect_def;
+        private static MelonPreferences_Entry<bool> ep_item_effect_def;
         public SpecialItemEffect()
         {
             ep_item_effect_def = TrackBindConfig("PervertFunctions", "EpItemEffect", false);

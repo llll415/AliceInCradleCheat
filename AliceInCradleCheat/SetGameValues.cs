@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using BepInEx.Configuration;
+using MelonLoader;
 using HarmonyLib;
 using nel;
 
@@ -14,11 +14,11 @@ namespace AliceInCradleCheat
         private static NelM2DBase m2d;
         private static PRNoel noel;
         private static TimedFlag set_money_button;
-        private static ConfigEntry<int> money_def;
+        private static MelonPreferences_Entry<int> money_def;
         private static TimedFlag set_dangerlevel_button;
-        private static ConfigEntry<int> danger_level_def;
+        private static MelonPreferences_Entry<int> danger_level_def;
         private static TimedFlag set_weather_button;
-        private static ConfigEntry<string> weather_def;
+        private static MelonPreferences_Entry<string> weather_def;
         private static TimedFlag reset_MP_break;
         private static TimedFlag reset_H_exp;
         private static TimedFlag plant_eggs;
@@ -26,18 +26,16 @@ namespace AliceInCradleCheat
         public SetGameValue()
         {
             string section = "SetGameValues";
-            set_money_button = new(TrackBindConfig(section, "SetMoneyButton", false));
-            money_def = TrackBindConfig(section, "Money", 99999,
-                new AcceptableValueRange<int>(0, 99999));
-            set_dangerlevel_button = new(TrackBindConfig(section, "SetDangerLevelButton", false));
-            danger_level_def = TrackBindConfig(section, "DangerLevel", 0,
-                new AcceptableValueRange<int>(0, 160));
-            set_weather_button = new(TrackBindConfig(section, "SetWeatherButton", false));
+            set_money_button = new(TrackBindConfig(section, "SetMoneyButton", false, isButton: true));
+            money_def = TrackBindConfig(section, "Money", 99999, 0, 99999);
+            set_dangerlevel_button = new(TrackBindConfig(section, "SetDangerLevelButton", false, isButton: true));
+            danger_level_def = TrackBindConfig(section, "DangerLevel", 0, 0, 160);
+            set_weather_button = new(TrackBindConfig(section, "SetWeatherButton", false, isButton: true));
             weather_def = TrackBindConfig(section, "Weather", "0110111");
-            reset_MP_break = new(TrackBindConfig("BasicStatus", "ResetMPBreak", false));
-            reset_H_exp = new(TrackBindConfig("NonHModeEnhance", "ResetHExp", false));
-            plant_eggs = new(TrackBindConfig("PervertFunctions", "PlantEggs", false));
-            lay_eggs = new(TrackBindConfig("PervertFunctions", "LayEggs", false));
+            reset_MP_break = new(TrackBindConfig("BasicStatus", "ResetMPBreak", false, isButton: true));
+            reset_H_exp = new(TrackBindConfig("NonHModeEnhance", "ResetHExp", false, isButton: true));
+            plant_eggs = new(TrackBindConfig("PervertFunctions", "PlantEggs", false, isButton: true));
+            lay_eggs = new(TrackBindConfig("PervertFunctions", "LayEggs", false, isButton: true));
             TryPatch(GetType());
         }
         [HarmonyPostfix, HarmonyPatch(typeof(SceneGame), "runIRD")]

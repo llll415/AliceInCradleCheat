@@ -1,4 +1,4 @@
-﻿using BepInEx.Configuration;
+﻿using MelonLoader;
 using HarmonyLib;
 using nel;
 using m2d;
@@ -18,12 +18,13 @@ namespace AliceInCradleCheat
     }
     public class StatusImmunity : BasePatchClass
     {
-        private static ConfigEntry<bool> sleep_def;
-        private static ConfigEntry<bool> confuse_def;
-        private static ConfigEntry<bool> paralysis_def;
-        private static ConfigEntry<bool> burned_def;
-        private static ConfigEntry<bool> frozen_def;
-        private static ConfigEntry<bool> jamming_def;
+        private static MelonPreferences_Entry<bool> sleep_def;
+        private static MelonPreferences_Entry<bool> confuse_def;
+        private static MelonPreferences_Entry<bool> paralysis_def;
+        private static MelonPreferences_Entry<bool> burned_def;
+        private static MelonPreferences_Entry<bool> frozen_def;
+        private static MelonPreferences_Entry<bool> jamming_def;
+        private static MelonPreferences_Entry<bool> stone_def;
         public StatusImmunity()
         {
             sleep_def = TrackBindConfig("OtherFunctions", "ImmuneToSleep", false);
@@ -32,6 +33,7 @@ namespace AliceInCradleCheat
             burned_def = TrackBindConfig("OtherFunctions", "ImmuneToBurned", false);
             frozen_def = TrackBindConfig("OtherFunctions", "ImmuneToFrozen", false);
             jamming_def = TrackBindConfig("OtherFunctions", "ImmuneToJamming", false);
+            stone_def = TrackBindConfig("OtherFunctions", "ImmuneToStone", false);
             TryPatch(GetType());
         }
         [HarmonyPrefix, HarmonyPatch(typeof(M2Ser), "Add")]
@@ -62,6 +64,10 @@ namespace AliceInCradleCheat
             {
                 cure_flag = true;
             }
+            else if (ser == SER.STONE && stone_def.Value)
+            {
+                cure_flag = true;
+            }
             if (cure_flag)
             {
                 __result = null;
@@ -74,7 +80,7 @@ namespace AliceInCradleCheat
     }
     public class DisableMosaic : BasePatchClass
     {
-        private static ConfigEntry<bool> switch_def;
+        private static MelonPreferences_Entry<bool> switch_def;
         public DisableMosaic()
         {
             switch_def = TrackBindConfig("OtherFunctions", "DisableMosaic", false);

@@ -1,33 +1,25 @@
-﻿using System.IO;
-using BepInEx;
-using BepInEx.Configuration;
-using BepInEx.Logging;
+﻿using MelonLoader;
+using UnityEngine;
+
+[assembly: MelonInfo(typeof(AliceInCradleCheat.AICCheat), "AliceInCradleCheat", "0.27.0", "AliceInCradleCheat")]
+[assembly: MelonGame]
 
 namespace AliceInCradleCheat
 {
-    [BepInPlugin(PluginInfo.PLUGIN_GUID, PluginInfo.PLUGIN_NAME, PluginInfo.PLUGIN_VERSION)]
-    [BepInProcess("AliceInCradle.exe")]
-    public class AICCheat : BaseUnityPlugin
+    public class AICCheat : MelonMod
     {
-        internal static ManualLogSource cheat_logger;
-        public static ConfigFile config;
-
-        private void Start()
+        public override void OnInitializeMelon()
         {
-            cheat_logger = Logger;
-            config = Config;
-            string config_file_path = config.ConfigFilePath;
-            if (File.Exists(config_file_path))
-            {
-                config.Reload();
-            }
             LocNames.InitializeLocNames();
-            // Plugin startup logic
+
+            // Core reference
             _ = new MainReference();
 
+            // Localization hooks
             _ = new MenuLocalization();
             _ = new AddCustomText();
 
+            // Feature modules
             _ = new LockStatus();
             _ = new SuperNoel();
             _ = new SetGameValue();
@@ -37,8 +29,22 @@ namespace AliceInCradleCheat
             _ = new SpecialItemEffect();
             _ = new AdditionalDrop();
             _ = new OtherFuncs();
-            cheat_logger.LogInfo($"Plugin {PluginInfo.PLUGIN_GUID} is loaded!");
+
+            LoggerInstance.Msg($"AliceInCradleCheat v0.27.0 loaded!");
+        }
+
+        public override void OnUpdate()
+        {
+            // Toggle cheat menu with BackQuote key (same as original)
+            if (Input.GetKeyDown(KeyCode.BackQuote))
+            {
+                CheatMenu.Toggle();
+            }
+        }
+
+        public override void OnGUI()
+        {
+            CheatMenu.Draw();
         }
     }
 }
-

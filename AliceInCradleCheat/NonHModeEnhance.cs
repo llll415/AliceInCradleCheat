@@ -1,4 +1,4 @@
-﻿using BepInEx.Configuration;
+﻿using MelonLoader;
 using HarmonyLib;
 using nel;
 
@@ -13,13 +13,13 @@ namespace AliceInCradleCheat
         {
             _ = new DisableGrabAttack();
             _ = new DisableEpDamage();
-            _ = new SkipGameOverPlay();
+            //_ = new SkipGameOverPlay(); // v0.29: disabled
             _ = new DisableWormTrap();
         }
     }
     public class DisableGrabAttack : BasePatchClass
     {
-        private static ConfigEntry<bool> switch_def;
+        private static MelonPreferences_Entry<bool> switch_def;
         public DisableGrabAttack()
         {
             switch_def = TrackBindConfig("NonHModeEnhance", "DisableGrabAttack", false);
@@ -80,7 +80,7 @@ namespace AliceInCradleCheat
     }
     public class DisableEpDamage : BasePatchClass
     {
-        private static ConfigEntry<bool> switch_def;
+        private static MelonPreferences_Entry<bool> switch_def;
         public DisableEpDamage()
         {
             switch_def = TrackBindConfig("NonHModeEnhance", "DisableEpDamage", false);
@@ -101,9 +101,12 @@ namespace AliceInCradleCheat
         }
 
     }
+    // v0.29: UiGO.runGiveup was removed. Game over logic refactored to UiGOContinuer.
+    // This patch is disabled until the new game over flow is understood.
+    /*
     public class SkipGameOverPlay : BasePatchClass
     {
-        private static ConfigEntry<bool> switch_def;
+        private static MelonPreferences_Entry<bool> switch_def;
         public SkipGameOverPlay()
         {
             switch_def = TrackBindConfig("NonHModeEnhance", "SkipGameOverPlay", false);
@@ -123,9 +126,10 @@ namespace AliceInCradleCheat
             }
         }
     }
+    */
     public class DisableWormTrap : BasePatchClass
     {
-        private static ConfigEntry<bool> switch_def;
+        private static MelonPreferences_Entry<bool> switch_def;
         public DisableWormTrap()
         {
             switch_def = TrackBindConfig("NonHModeEnhance", "DisableWormTrap", false);

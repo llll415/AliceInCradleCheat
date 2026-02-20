@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net46</TargetFramework>
     <AssemblyName>AliceInCradleCheat</AssemblyName>
-    <Description>Cheat Plugin for AliceInCradle</Description>
+    <Description>Cheat Plugin for AliceInCradle (MelonLoader)</Description>
     <Version>0.27.0</Version>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>latest</LangVersion>
@@ -11,6 +11,8 @@
     <Company />
     <Authors />
     <SignAssembly>false</SignAssembly>
+    <PlatformTarget>x64</PlatformTarget>
+    <ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>None</ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
@@ -27,32 +29,58 @@
     <None Remove="NuGet.Config" />
   </ItemGroup>
 
+  <!-- MelonLoader references -->
   <ItemGroup>
-    <PackageReference Include="BepInEx.Analyzers" Version="1.*" PrivateAssets="all" />
-    <PackageReference Include="BepInEx.Core" Version="5.*" />
-    <PackageReference Include="BepInEx.PluginInfoProps" Version="1.1.0" />
+    <Reference Include="MelonLoader">
+      <HintPath>lib\MelonLoader.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="0Harmony">
+      <HintPath>lib\0Harmony.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
   </ItemGroup>
 
+  <!-- Game DLL references (copy from AliceInCradle_Data\Managed to lib\) -->
   <ItemGroup>
     <Reference Include="Assembly-CSharp">
+      <HintPath>lib\Assembly-CSharp.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="better">
+      <HintPath>lib\better.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="netstandard">
+      <HintPath>lib\netstandard.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="UnityEngine">
+      <HintPath>lib\UnityEngine.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine.CoreModule">
+      <HintPath>lib\UnityEngine.CoreModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.IMGUIModule">
+      <HintPath>lib\UnityEngine.IMGUIModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.InputLegacyModule">
+      <HintPath>lib\UnityEngine.InputLegacyModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.TextRenderingModule">
+      <HintPath>lib\UnityEngine.TextRenderingModule.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine.UI">
+      <HintPath>lib\UnityEngine.UI.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="unsafeAssem">
+      <HintPath>lib\unsafeAssem.dll</HintPath>
       <Private>False</Private>
     </Reference>
   </ItemGroup>

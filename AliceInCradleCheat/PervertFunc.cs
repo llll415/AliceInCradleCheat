@@ -1,4 +1,5 @@
-﻿using BepInEx.Configuration;
+﻿using System;
+using MelonLoader;
 using HarmonyLib;
 using nel;
 using XX;
@@ -16,16 +17,15 @@ namespace AliceInCradleCheat
             _ = new EnableMultipleOrgasmForAll();
             _ = new EasierOrgasm();
             _ = new AdditionalPleasure();
-            _ = new EroBow();
+            //_ = new EroBow(); // v0.29: disabled
         }
     }
     public class EPDamageMultiplier : BasePatchClass
     {
-        private static ConfigEntry<int> ep_dm_def;
+        private static MelonPreferences_Entry<int> ep_dm_def;
         public EPDamageMultiplier()
         {
-            ep_dm_def = TrackBindConfig("PervertFunctions", "EPDamageMultiplier", 1,
-                new AcceptableValueRange<int>(1, 100));
+            ep_dm_def = TrackBindConfig("PervertFunctions", "EPDamageMultiplier", 1, 1, 100);
             TryPatch(GetType());
         }
         [HarmonyPostfix, HarmonyPatch(typeof(EpManager), "calcNormalEpErection")]
@@ -36,7 +36,7 @@ namespace AliceInCradleCheat
     }
     public class EnableMultipleOrgasmForAll : BasePatchClass
     {
-        private static ConfigEntry<bool> switch_def;
+        private static MelonPreferences_Entry<bool> switch_def;
         public EnableMultipleOrgasmForAll()
         {
             switch_def = TrackBindConfig("PervertFunctions", "EnableMultipleOrgasmForAll", false);
@@ -61,7 +61,7 @@ namespace AliceInCradleCheat
     }
     public class EasierOrgasm : BasePatchClass
     {
-        private static ConfigEntry<bool> switch_def;
+        private static MelonPreferences_Entry<bool> switch_def;
         public EasierOrgasm()
         {
             switch_def = TrackBindConfig("PervertFunctions", "EasierOrgasmWithHighEP", false);
@@ -81,22 +81,30 @@ namespace AliceInCradleCheat
             }
         }
     }
-    public class AdditionalPleasure : BasePatchClass
+    public class AdditionalPleasure
     {
-        private static PRNoel noel;
-        private static ConfigEntry<bool> s_def;
-        private static ConfigEntry<bool> m_def;
+        internal static MelonPreferences_Entry<bool> s_def;
+        internal static MelonPreferences_Entry<bool> m_def;
         public AdditionalPleasure()
         {
-            s_def = TrackBindConfig("PervertFunctions", "Sadism", false);
-            m_def = TrackBindConfig("PervertFunctions", "Masochism", false);
+            s_def = BasePatchClass.BindConfig("PervertFunctions", "Sadism", false);
+            m_def = BasePatchClass.BindConfig("PervertFunctions", "Masochism", false);
+            _ = new SadismPatch();
+            _ = new MasochismPatch();
+            _ = new PleasureRecordPatch();
+        }
+    }
+    public class SadismPatch : BasePatchClass
+    {
+        public SadismPatch()
+        {
             TryPatch(GetType());
         }
-        [HarmonyPrefix, HarmonyPatch(typeof(NelEnemy), "applyDamage")]
+        [HarmonyPrefix, HarmonyPatch(typeof(NelEnemy), "applyDamage", new Type[] { typeof(NelAttackInfo), typeof(bool) })]
         private static bool SadismMode(ref NelAttackInfo Atk)
         {
-            noel = MainReference.GetNoel();
-            if (s_def.Value && Atk != null && Atk.AttackFrom is PR)
+            PRNoel noel = MainReference.GetNoel();
+            if (AdditionalPleasure.s_def != null && AdditionalPleasure.s_def.Value && Atk != null && Atk.AttackFrom is PR)
             {
                 int value = (int)(Atk.hpdmg0 * 1.5f);
                 value = value > 0 ? value : 1;
@@ -104,15 +112,21 @@ namespace AliceInCradleCheat
             }
             return true;
         }
-        [HarmonyPrefix, HarmonyPatch(typeof(PR), "applyHpDamageSimple")]
+    }
+    public class MasochismPatch : BasePatchClass
+    {
+        public MasochismPatch()
+        {
+            TryPatch(GetType());
+        }
+        [HarmonyPrefix, HarmonyPatch(typeof(M2PrADmg), "applyHpDamageSimple")]
         private static bool MasochismMode(ref NelAttackInfoBase Atk)
         {
-            //if (Atk == null || Atk.AttackFrom is PR)
             if (Atk == null)
             {
                 return true;
             }
-            if (m_def.Value)
+            if (AdditionalPleasure.m_def != null && AdditionalPleasure.m_def.Value)
             {
                 if (Atk.EpDmg == null)
                 {
@@ -127,10 +141,17 @@ namespace AliceInCradleCheat
             }
             return true;
         }
-        [HarmonyPrefix, HarmonyPatch(typeof(EpManager), "addMasturbateCountImmediate")]
-        private static bool RemoveRecord(ref EpManager __instance, ref EPCATEG __result, ref EpAtk Atk, ref int multiple_orgasm)
+    }
+    public class PleasureRecordPatch : BasePatchClass
+    {
+        public PleasureRecordPatch()
         {
-            if (Atk.situation_key == "sadism" || Atk.situation_key == "masochism")
+            TryPatch(GetType());
+        }
+        [HarmonyPrefix, HarmonyPatch(typeof(EpManager), "addMasturbateCountImmediate")]
+        private static bool RemoveRecord(ref EpManager __instance, ref EPCATEG __result, ref string situation_key, ref int multiple_orgasm)
+        {
+            if (situation_key == "sadism" || situation_key == "masochism")
             {
                 __result = EPCATEG.OTHER;
                 Traverse lmc = Traverse.Create(__instance).Field("last_ex_multi_count_temp");
@@ -143,9 +164,11 @@ namespace AliceInCradleCheat
             return true;
         }
     }
+    // v0.29: NelNGolemToyBow.decideAttr was removed. This patch is disabled.
+    /*
     public class EroBow : BasePatchClass
     {
-        private static ConfigEntry<bool> switch_def;
+        private static MelonPreferences_Entry<bool> switch_def;
         public EroBow()
         {
             switch_def = TrackBindConfig("PervertFunctions", "EroBow", false);
@@ -172,4 +195,5 @@ namespace AliceInCradleCheat
             }
         }
     }
+    */
 }

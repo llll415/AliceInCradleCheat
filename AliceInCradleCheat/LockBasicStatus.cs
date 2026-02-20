@@ -1,4 +1,4 @@
-﻿using BepInEx.Configuration;
+﻿using MelonLoader;
 using HarmonyLib;
 using nel;
 
@@ -9,22 +9,22 @@ namespace AliceInCradleCheat
     // ##############################
     public class LockStatus : BasePatchClass
     {
-        private static ConfigEntry<bool> hp_switch_def;
-        private static ConfigEntry<int> hp_def;
-        private static ConfigEntry<bool> mp_switch_def;
-        private static ConfigEntry<int> mp_def;
-        private static ConfigEntry<bool> ep_switch_def;
-        private static ConfigEntry<int> ep_def;
+        private static MelonPreferences_Entry<bool> hp_switch_def;
+        private static MelonPreferences_Entry<int> hp_def;
+        private static MelonPreferences_Entry<bool> mp_switch_def;
+        private static MelonPreferences_Entry<int> mp_def;
+        private static MelonPreferences_Entry<bool> ep_switch_def;
+        private static MelonPreferences_Entry<int> ep_def;
         public LockStatus()
         {
             string section = "BasicStatus";
             hp_switch_def = TrackBindConfig(section, "HPLockSwitch", false);
-            hp_def = TrackBindConfig(section, "HP", 100, new AcceptableValueRange<int>(0, 100), false, true);
+            hp_def = TrackBindConfig(section, "HP", 100, 0, 100);
             mp_switch_def = TrackBindConfig(section, "MPLockSwitch", false);
-            mp_def = TrackBindConfig(section, "MP", 100, new AcceptableValueRange<int>(0, 100), false, true);
+            mp_def = TrackBindConfig(section, "MP", 100, 0, 100);
             section = "PervertFunctions";
             ep_switch_def = TrackBindConfig(section, "EPLockSwitch", false);
-            ep_def = TrackBindConfig(section, "EP", 0, new AcceptableValueRange<int>(0, 1000));
+            ep_def = TrackBindConfig(section, "EP", 0, 0, 1000);
             TryPatch(GetType());
         }
         [HarmonyPostfix, HarmonyPatch(typeof(SceneGame), "runIRD")]

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
-using BepInEx.Configuration;
+using MelonLoader;
 using HarmonyLib;
 using nel;
 using m2d;
@@ -10,52 +10,84 @@ namespace AliceInCradleCheat
 {
     public abstract class BasePatchClass
     {
-        public List<ConfigDefinition> config_list = new();
-        public ConfigEntry<T> TrackBindConfig<T>(string section, string key, T val,
-            AcceptableValueBase acp_value = null, bool hide_defaultbutton = false, bool show_percent = false)
+        // Registry of all categories and entries for the CheatMenu
+        public static Dictionary<string, MelonPreferences_Category> categories = new();
+        public static Dictionary<string, List<CheatMenuEntry>> menuEntries = new();
+
+        public List<string> config_keys = new();
+
+        public MelonPreferences_Entry<T> TrackBindConfig<T>(string section, string key, T val,
+            int minVal = 0, int maxVal = 0, bool isButton = false)
         {
-            // add config with simple description
-            ConfigEntry<T> entry = BindConfig(section, key, val, acp_value, hide_defaultbutton, show_percent);
-            config_list.Add(entry.Definition);
+            MelonPreferences_Entry<T> entry = BindConfig(section, key, val, minVal, maxVal, isButton);
+            config_keys.Add($"{section}.{key}");
             return entry;
         }
-        public static ConfigEntry<T> BindConfig<T>(string section, string key, T val, 
-            AcceptableValueBase acp_value = null, bool hide_defaultbutton = false, bool show_percent = false)
+
+        public static MelonPreferences_Entry<T> BindConfig<T>(string section, string key, T val,
+            int minVal = 0, int maxVal = 0, bool isButton = false)
         {
-            // add config with simple description
-            ConfigDefinition config_def = new(section, key);
-            ConfigDescription config_desc = new(LocNames.GetLocDesc(section, key),
-                acp_value, new ConfigurationManagerAttributes
-                {
-                    DispName = LocNames.GetEntryLocName(section, key),
-                    Category = LocNames.GetSectionLocName(section),
-                    Order = LocNames.GetEntryOrder(section, key),
-                    HideDefaultButton = hide_defaultbutton,
-                    ShowRangeAsPercent = show_percent,
-                });
-            return AICCheat.config.Bind(config_def, val, config_desc);
+            if (!categories.ContainsKey(section))
+            {
+                string displayName = LocNames.GetSectionLocName(section);
+                categories[section] = MelonPreferences.CreateCategory(section, displayName);
+                categories[section].SetFilePath("UserData/AliceInCradleCheat.cfg");
+                menuEntries[section] = new List<CheatMenuEntry>();
+            }
+
+            string entryDisplayName = LocNames.GetEntryLocName(section, key);
+            string entryDesc = LocNames.GetLocDesc(section, key);
+            MelonPreferences_Entry<T> entry = categories[section].CreateEntry(key, val,
+                entryDisplayName, entryDesc);
+
+            // Register for CheatMenu rendering
+            menuEntries[section].Add(new CheatMenuEntry
+            {
+                Key = key,
+                Section = section,
+                EntryBase = entry,
+                EntryType = typeof(T),
+                MinInt = minVal,
+                MaxInt = maxVal,
+                IsButton = isButton,
+            });
+
+            return entry;
         }
+
         public void RemoveConfigs()
         {
-            foreach (ConfigDefinition config_def in config_list)
-            {
-                AICCheat.config.Remove(config_def);
-            }
+            // MelonPreferences doesn't support dynamic removal
+            // Entries will simply be ignored if patch fails
         }
+
         public void TryPatch(Type patch_type)
         {
             try
             {
-                Harmony.CreateAndPatchAll(patch_type);
+                var harmony = new HarmonyLib.Harmony($"AliceInCradleCheat.{patch_type.Name}");
+                harmony.PatchAll(patch_type);
             }
             catch //(Exception ex)
             {
-                AICCheat.cheat_logger.LogError($"Patch {patch_type} failed!");
-                //AICCheat.cheat_logger.LogInfo(ex.ToString());
+                Melon<AICCheat>.Logger.Error($"Patch {patch_type} failed!");
+                //Melon<AICCheat>.Logger.Msg(ex.ToString());
                 RemoveConfigs();
             }
         }
     }
+
+    public class CheatMenuEntry
+    {
+        public string Key;
+        public string Section;
+        public MelonPreferences_Entry EntryBase;
+        public Type EntryType;
+        public int MinInt;
+        public int MaxInt;
+        public bool IsButton;
+    }
+
     public class TimedFlag
     {
         /*Attach a timer to a boolean flag,
@@ -63,10 +95,10 @@ namespace AliceInCradleCheat
         start the count down, once timer reached 0,
         the flag will be set to false;
         //*/
-        private readonly ConfigEntry<bool> config_flag;
+        private readonly MelonPreferences_Entry<bool> config_flag;
         private float timer;
         private const float max_time = 0.1f;
-        public TimedFlag(ConfigEntry<bool> config_flag)
+        public TimedFlag(MelonPreferences_Entry<bool> config_flag)
         {
             this.config_flag = config_flag;
             timer = 0;
@@ -105,6 +137,7 @@ namespace AliceInCradleCheat
             config_flag.Value = val;
         }
     }
+
     internal class MainReference : BasePatchClass
     {
         private static NelM2DBase m2d;
@@ -141,6 +174,7 @@ namespace AliceInCradleCheat
             return noel;
         }
     }
+
     public class BaseLocClass
     {
         public int order = 0;
@@ -170,9 +204,10 @@ namespace AliceInCradleCheat
             return loc_name_array[i] == "" ? name : loc_name_array[i];
         }
     }
+
     public class LocConfigSection : BaseLocClass
     {
-        // Create localization for BepInEx config sections
+        // Create localization for config sections
         public Dictionary<string, LocConfigEntry> entry_dict = new();
         public LocConfigSection(string name, string[] loc_name_array, string[] entry_loc_array) :
             base(name, loc_name_array)
@@ -213,14 +248,15 @@ namespace AliceInCradleCheat
                 }
                 catch
                 {
-                    AICCheat.cheat_logger.LogError($"key not exist for 'desc_{entry_key}'");
+                    Melon<AICCheat>.Logger.Error($"key not exist for 'desc_{entry_key}'");
                 }
             }
         }
     }
+
     public class LocConfigEntry : BaseLocClass
     {
-        // Create localization for BepInEx config entries
+        // Create localization for config entries
         private string[] loc_desc_array;
         public LocConfigEntry(string name, string[] loc_name_array, int order) :
             base(name, loc_name_array)
@@ -229,6 +265,7 @@ namespace AliceInCradleCheat
         }
         public string Loc_desc(string lang = "")
         {
+            if (loc_desc_array == null) return "";
             int i = GetLangIndex(lang);
             return loc_desc_array[i];
         }
